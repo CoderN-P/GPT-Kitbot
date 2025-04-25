@@ -1,9 +1,10 @@
 from quart import Quart
 from dotenv import load_dotenv
 load_dotenv()
-#from pynetworktables import NetworkTableInstance
+import ntcore
 from quart_cors import cors
-import os
+from pydantic.json import pydantic_encoder
+import os, json
 from quart_schema import validate_request, validate_response, QuartSchema
 from typing import List
 from backend import retrieve_commands, GenerateCommandsRequest, Command
@@ -12,9 +13,9 @@ app = Quart(__name__)
 app = cors(app, allow_credentials=True, allow_origin="http://localhost:3000")
 QuartSchema(app)
 
-nt = NetworkTableInstance.getDefault()
+nt = ntcore.NetworkTableInstance.getDefault()
 nt.startClient4("CLI")
-nt.setServerTeam(int(os.environ.get("1351", 0)))
+nt.setServerTeam(int(os.environ.get("TEAM", 0)))
 table = nt.getTable("flask_gui")
 
 
@@ -36,7 +37,12 @@ async def generate_commands(data: GenerateCommandsRequest):
     # Retrieve commands using the OpenAI API
     commands = await retrieve_commands(data.query)
     
-    table.getEntry("commands").setString(commands.model_dump_json())
+    commands_json = json.dumps(commands, default=pydantic_encoder)
+    
+    try:
+        table.getEntry("commands").setString(commands_json)
+    except Exception as e:
+        print(f"Error setting commands in NetworkTables: {e}")
     
     return commands
 
