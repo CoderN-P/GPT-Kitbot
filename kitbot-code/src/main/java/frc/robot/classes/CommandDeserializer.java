@@ -14,7 +14,7 @@ import frc.robot.classes.GPTCommand;
 public class CommandDeserializer implements JsonDeserializer<GPTCommand> {
 
     @Override
-    public Command deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+    public GPTCommand deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
             throws JsonParseException {
 
         JsonObject obj = json.getAsJsonObject();

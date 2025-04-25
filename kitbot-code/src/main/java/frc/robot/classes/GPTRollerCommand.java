@@ -16,7 +16,7 @@ public class GPTRollerCommand {
     public void run(double duration, CANRollerSubsystem rollerSubsystem) {
         // Schedule the command to run for the specified duration
         CommandScheduler.getInstance().schedule(
-                new RollerCommand(forward, backward, rollerSubsystem).withTimeout(duration));
+                new RollerCommand(() -> forward, () -> backward, rollerSubsystem).withTimeout(duration));
 
     }
 }

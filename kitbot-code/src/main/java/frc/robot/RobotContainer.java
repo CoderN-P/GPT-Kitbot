@@ -30,6 +30,14 @@ public class RobotContainer {
   private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
   private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
 
+  public CANDriveSubsystem getDriveSubsystem() {
+    return driveSubsystem;
+  }
+
+  public CANRollerSubsystem getRollerSubsystem() {
+    return rollerSubsystem;
+  }
+
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
       OperatorConstants.DRIVER_CONTROLLER_PORT);

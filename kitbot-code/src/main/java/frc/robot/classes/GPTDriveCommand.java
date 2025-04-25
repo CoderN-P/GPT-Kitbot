@@ -16,7 +16,7 @@ public class GPTDriveCommand {
     public void run(double duration, CANDriveSubsystem driveSubsystem) {
         // Schedule the command to run for the specified duration
         CommandScheduler.getInstance().schedule(
-                new DriveCommand(speed, rotation, driveSubsystem).withTimeout(duration));
+                new DriveCommand(() -> speed, () -> rotation, driveSubsystem).withTimeout(duration));
 
     }
 }
