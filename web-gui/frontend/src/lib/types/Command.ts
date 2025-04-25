@@ -5,6 +5,7 @@ import { RollerCommandSchema } from "./RollerCommand";
 
 
 export const CommandSchema = z.object({
+    id: z.string().uuid(), // Unique ID for each command
     command_type: z.nativeEnum(CommandEnum),
     command: z.union([DriveCommandSchema, RollerCommandSchema]),
     duration: z.number().min(0).max(5).nullable().optional(),

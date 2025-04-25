@@ -48,7 +48,6 @@ class GUIManager {
 
         if (!commandJSON.isEmpty()) {
             try {
-                // Fix: You were using GPTCommand.class instead of commandListType
                 List<GPTCommand> commands = gson.fromJson(commandJSON, commandListType);
 
                 SequentialCommandGroup group = new SequentialCommandGroup();
@@ -56,11 +55,17 @@ class GUIManager {
                 for (GPTCommand command : commands) {
                     System.out.println("Adding command: " + command.command_type);
                     Command cmd = command.getCommand(driveSubsystem, rollerSubsystem);
+
                     Command wrapped = new InstantCommand(() ->
-                        table.getEntry("active_command").setString(command.command_type.toString()))
-                        .andThen(cmd);
+                        table.getEntry("active_command").setString(command.id) // Set active command ID
+                    ).andThen(cmd);
+
                     if (command.pause_duration > 0) {
-                        group.addCommands(wrapped.andThen(new WaitCommand((float) command.pause_duration)));
+                        group.addCommands(wrapped.andThen(
+                            new InstantCommand(() ->
+                                table.getEntry("active_command").setString("") // Clear active command ID during pause
+                            )
+                        ).andThen(new WaitCommand((float) command.pause_duration)));
                     } else {
                         group.addCommands(wrapped);
                     }
@@ -68,7 +73,6 @@ class GUIManager {
 
                 CommandScheduler.getInstance().schedule(group);
 
-                // Optional: Report success back to NetworkTables
                 table.getEntry("status").setString("Commands executed successfully");
 
             } catch (JsonSyntaxException e) {

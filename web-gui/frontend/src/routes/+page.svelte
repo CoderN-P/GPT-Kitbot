@@ -6,6 +6,7 @@
   import CommandView from "$lib/components/CommandView.svelte";
   import MessageField from "$lib/components/MessageField.svelte";
   import { fade, fly, slide } from 'svelte/transition';
+  import { io } from "$lib/api/socketClient";
 
   // State variables
   let query = "";
@@ -13,8 +14,29 @@
   let commands: Command[] = [];
   let isLoading = false;
   let error = "";
+  let activeCommandId: string | null = null;
   let commandContainerElement: HTMLElement;
   let showHistory = false;
+  
+
+  // Listen for active_command updates from the backend
+  onMount(() => {
+    // fake data for testing
+    commands = [
+        { id: "1", command_type: CommandEnum.DRIVE, command: {speed: 0.5, rotation: 0,}, duration: 3, pause_duration: 0 },
+        { id: "2", command_type: CommandEnum.ROLLER, command: {backward: 0, forward: 0.8}, duration: 2, pause_duration: 0 },
+        { id: "3", command_type: CommandEnum.DRIVE, command: {speed: 0.7, rotation: -0.5}, duration: 4, pause_duration: 0 },
+        { id: "4", command_type: CommandEnum.ROLLER, command: {backward: 1, forward: 0}, duration: 1, pause_duration: 0 },
+    ];
+    
+    // Simulate active command
+    simulateActiveCommands();
+    
+    io.on('active_command', (data) => {
+      activeCommandId = data.id;
+      tick(); // Ensure UI updates
+    });
+  });
 
   // Form handling
   const handleSubmit = async () => {
@@ -40,6 +62,8 @@
       if (commandContainerElement) {
         commandContainerElement.scrollTop = 0;
       }
+        // Simulate active commands
+        simulateActiveCommands();
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to generate commands";
@@ -48,13 +72,23 @@
       isLoading = false;
     }
   };
-  
 
-  const getDuration = (command: Command) => {
-    if (command.duration) return `${command.duration}s`;
-    if (command.distance) return `${command.distance}m`;
-    return "N/A";
-  };
+  function simulateActiveCommands() {
+    let idx = 0;
+    setInterval(() => {
+      if (activeCommandId) {
+        commands = commands.filter(
+                (command) => command.id !== activeCommandId
+        )
+        idx = 0; // Reset index if active command is removed
+      }
+      
+      const current = commands[idx % commands.length];
+      console.log("Simulating active command:", current);
+      activeCommandId = current.id;
+      idx++;
+    }, 4000); // Change active command every 4 seconds
+  }
 
   // Format time for display
   const formatTime = (date: Date) => {
@@ -126,7 +160,7 @@
         <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4" bind:this={commandContainerElement}>
           {#if commands.length > 0}
             {#each commands as command, i (i)}
-              <CommandView {command} index={i} />
+              <CommandView {command} index={i} active={command.id === activeCommandId} />
             {/each}
           {:else}
             <div class="text-center py-8 text-gray-500" in:fade>
@@ -153,7 +187,7 @@
                   {#each entry.commands as command, cmdIndex}
                     <CommandView 
                       command={command} 
-                      active={false} 
+                      active={command.id === activeCommandId} 
                       index={cmdIndex + (historyIndex * entry.commands.length)} 
                     />
                   {/each}

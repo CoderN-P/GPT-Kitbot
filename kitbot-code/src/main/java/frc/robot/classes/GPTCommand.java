@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 public class GPTCommand {
     public CommandEnum command_type;
     public Object command;
+    public String id;
     public double duration;
     public double pause_duration;
 
