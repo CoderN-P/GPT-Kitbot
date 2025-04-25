@@ -2,6 +2,7 @@ package frc.robot.classes;
 
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.subsystems.CANRollerSubsystem;
+import edu.wpi.first.wpilibj2.command.Command;
 
 public class GPTCommand {
     public CommandEnum command_type;
@@ -9,14 +10,12 @@ public class GPTCommand {
     public double duration;
     public double pause_duration;
 
-    public void run(CANDriveSubsystem driveSubsystem, CANRollerSubsystem rollerSubsystem) {
+    public Command getCommand(CANDriveSubsystem driveSubsystem, CANRollerSubsystem rollerSubsystem) {
         switch (command_type) {
             case DRIVE:
-                ((GPTDriveCommand) command).run(duration, driveSubsystem);
-                break;
+                return ((GPTDriveCommand) command).getCommand(driveSubsystem);
             case ROLLER:
-                ((GPTRollerCommand) command).run(duration, rollerSubsystem);
-                break;
+                return ((GPTRollerCommand) command).getCommand(rollerSubsystem);
             default:
                 throw new IllegalArgumentException("Unknown command type: " + command_type);
         }

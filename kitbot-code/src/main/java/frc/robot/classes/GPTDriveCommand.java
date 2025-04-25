@@ -1,8 +1,8 @@
 package frc.robot.classes;
 
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.commands.DriveCommand;
+import edu.wpi.first.wpilibj2.command.Command;
 
 public class GPTDriveCommand {
     private double speed;
@@ -13,10 +13,7 @@ public class GPTDriveCommand {
         this.rotation = rotation;
     }
 
-    public void run(double duration, CANDriveSubsystem driveSubsystem) {
-        // Schedule the command to run for the specified duration
-        CommandScheduler.getInstance().schedule(
-                new DriveCommand(() -> speed, () -> rotation, driveSubsystem).withTimeout(duration));
-
+    public Command getCommand(CANDriveSubsystem driveSubsystem) {
+        return new DriveCommand(() -> speed, () -> rotation, driveSubsystem);
     }
 }

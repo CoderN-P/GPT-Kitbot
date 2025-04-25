@@ -21,6 +21,10 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 
 class GUIManager {
     private CANDriveSubsystem driveSubsystem;
@@ -47,21 +51,22 @@ class GUIManager {
                 // Fix: You were using GPTCommand.class instead of commandListType
                 List<GPTCommand> commands = gson.fromJson(commandJSON, commandListType);
 
-                for (GPTCommand command : commands) {
-                    System.out.println("Running command: " + command.command_type);
-                    command.run(driveSubsystem, rollerSubsystem);
+                SequentialCommandGroup group = new SequentialCommandGroup();
 
-                    // Add pause between commands if specified
+                for (GPTCommand command : commands) {
+                    System.out.println("Adding command: " + command.command_type);
+                    Command cmd = command.getCommand(driveSubsystem, rollerSubsystem);
+                    Command wrapped = new InstantCommand(() ->
+                        table.getEntry("active_command").setString(command.command_type.toString()))
+                        .andThen(cmd);
                     if (command.pause_duration > 0) {
-                        try {
-                            Thread.sleep((long) (command.pause_duration * 1000));
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            System.err.println("Command sequence interrupted during pause");
-                            break;
-                        }
+                        group.addCommands(wrapped.andThen(new WaitCommand((float) command.pause_duration)));
+                    } else {
+                        group.addCommands(wrapped);
                     }
                 }
+
+                CommandScheduler.getInstance().schedule(group);
 
                 // Optional: Report success back to NetworkTables
                 table.getEntry("status").setString("Commands executed successfully");

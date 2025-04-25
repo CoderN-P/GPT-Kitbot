@@ -6,33 +6,21 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.RollerConstants;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
 
 /** Class to run the rollers over CAN */
 public class CANRollerSubsystem extends SubsystemBase {
-  private final SparkMax rollerMotor;
+  private final WPI_TalonSRX rollerMotor;
 
   public CANRollerSubsystem() {
-    // Set up the roller motor as a brushed motor
-    rollerMotor = new SparkMax(RollerConstants.ROLLER_MOTOR_ID, MotorType.kBrushed);
-
-    // Set can timeout. Because this project only sets parameters once on
-    // construction, the timeout can be long without blocking robot operation. Code
-    // which sets or gets parameters during operation may need a shorter timeout.
-    rollerMotor.setCANTimeout(250);
-
-    // Create and apply configuration for roller motor. Voltage compensation helps
-    // the roller behave the same as the battery
-    // voltage dips. The current limit helps prevent breaker trips or burning out
-    // the motor in the event the roller stalls.
-    SparkMaxConfig rollerConfig = new SparkMaxConfig();
-    rollerConfig.voltageCompensation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP);
-    rollerConfig.smartCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
-    rollerMotor.configure(rollerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    rollerMotor = new WPI_TalonSRX(RollerConstants.ROLLER_MOTOR_ID);
+    rollerMotor.setNeutralMode(NeutralMode.Coast);
+    rollerMotor.configVoltageCompSaturation(RollerConstants.ROLLER_MOTOR_VOLTAGE_COMP);
+    rollerMotor.enableVoltageCompensation(true);
+    rollerMotor.configContinuousCurrentLimit(RollerConstants.ROLLER_MOTOR_CURRENT_LIMIT);
+    rollerMotor.enableCurrentLimit(true);
   }
 
   @Override
@@ -41,6 +29,6 @@ public class CANRollerSubsystem extends SubsystemBase {
 
   /** This is a method that makes the roller spin */
   public void runRoller(double forward, double reverse) {
-    rollerMotor.set(forward - reverse);
+    rollerMotor.set(ControlMode.PercentOutput, forward - reverse);
   }
 }
