@@ -11,6 +11,6 @@ class DriveCommand(BaseModel):
         status (str): The status of the command execution.
     """
 
-    speed: float = Field(..., description="Speed for arcade drive")
-    rotation: float = Field(..., description="Rotation for arcade drive")
+    speed: float = Field(ge=-1, le=1, description="Speed for arcade drive")
+    rotation: float = Field(ge=-1, le=1, description="Rotation for arcade drive")
     

@@ -17,12 +17,12 @@ class Command(BaseModel):
         distance (float): The distance for command execution - used if there are encoders for more accurate drive
     """
 
-    id: str = Field(description="Unique ID for the command")
+    id: str = Field(description="Unique ID for the command", default_factory="")
     command_type: CommandEnum
     command: DriveCommand | RollerCommand
-    duration: float | None = Field(description="Duration for command execution (seconds)")
-    distance: float | None = Field(description="Distance for command execution") 
-    pause_duration: float = Field(description="Duration to pause after command execution (seconds)")
+    duration: float | None = Field(ge=0, le=5, description="Duration for command execution (seconds)")
+    distance: float | None = Field(ge=0, le=5, description="Distance for command execution") 
+    pause_duration: float = Field(ge=0, le=5, description="Duration to pause after command execution (seconds)")
     
     def __init__(self, **data):
         super().__init__(**data)

@@ -1,10 +1,11 @@
-from openai import AsyncOpenAI
+from ollama import AsyncClient
 import os
 from typing import List
+import json
 from . import CommandResponse, Command
 
 
-client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = AsyncClient()
 
 
 async def retrieve_commands(query: str) -> List[Command]:
@@ -17,18 +18,19 @@ async def retrieve_commands(query: str) -> List[Command]:
     Returns:
         CommandResponse: A list of commands retrieved from the OpenAI API.
     """
-    # Initialize OpenAI API client
     
     # Send the prompt to the OpenAI API and get the response
-    response = await client.responses.parse(
-        model="gpt-4o-mini",
-        instructions=open("backend/ai/prompts/CommandsPrompt.txt").read(),
-        input=query,
-        text_format=CommandResponse,
+    response = await client.chat(
+        model="mistral:7b-instruct",
+        messages=[
+            {"role": "system", "content": open("backend/ai/prompts/CommandsPrompt.txt").read()},
+            {"role": "user", "content": query},
+        ],
+        format=CommandResponse.model_json_schema(),
     )
     
-    event = response.output[0].content[0]
+    data = response.message.content
     
-    print("Received response:", event.parsed)
+    return CommandResponse.model_validate_json(data).commands
     
-    return event.parsed.commands
+    
