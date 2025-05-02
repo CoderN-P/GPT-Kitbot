@@ -4,7 +4,7 @@ load_dotenv()
 import ntcore
 from quart_cors import cors
 from pydantic.json import pydantic_encoder
-import os, json
+import os, json, asyncio
 from quart_schema import validate_request, validate_response, QuartSchema
 from typing import List
 from backend import retrieve_commands, GenerateCommandsRequest, Command
@@ -24,16 +24,26 @@ main_app = socketio.ASGIApp(sio, app)
 
 nt = ntcore.NetworkTableInstance.getDefault()
 nt.startClient4("CLI")
-nt.setServerTeam(int(os.environ.get("TEAM", 0)))
+# connect to localhost
+nt.setServer("localhost")
 table = nt.getTable("flask_gui")
+table.getEntry("command").setString("")
+table.getEntry("active_command").setString("")
+table.getEntry("status").setString("")
+
+loop = asyncio.get_event_loop()
 
 def listen_for_active_change():
-    def value_changed(table, key, event):
-        if event.name == "active_command":
-            print(f"Active command changed: {event.value.value}")
-            sio.emit("active_command", {"id": event.value.value})
+    def value_changed(table, key, event: ntcore.Event):
+        if event.data.topic.getName() == "/flask_gui/active_command":
+            print(f"Active command changed: {event.data.value.value()}")
+            asyncio.run_coroutine_threadsafe(sio.emit("active_command", {"id": event.data.value.value()}), loop)
+        if event.data.topic.getName() == "/flask_gui/status":
+            print(f"Status changed: {event.data.value.value()}")
+            asyncio.run_coroutine_threadsafe(sio.emit("status", {"status": event.data.value.value()}), loop)
 
     table.addListener("active_command", ntcore.EventFlags.kValueAll, value_changed)
+    table.addListener("status", ntcore.EventFlags.kValueAll, value_changed)
 
 # Run the listener in a separate thread
 listener_thread = threading.Thread(target=listen_for_active_change, daemon=True)
@@ -59,7 +69,7 @@ async def generate_commands(data: GenerateCommandsRequest):
     commands_json = json.dumps(commands, default=pydantic_encoder)
     
     try:
-        table.getEntry("commands").setString(commands_json)
+        table.getEntry("command").setString(commands_json)
     except Exception as e:
         print(f"Error setting commands in NetworkTables: {e}")
     

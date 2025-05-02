@@ -13,7 +13,7 @@ public class GPTDriveCommand {
         this.rotation = rotation;
     }
 
-    public Command getCommand(CANDriveSubsystem driveSubsystem) {
-        return new DriveCommand(() -> speed, () -> rotation, driveSubsystem);
+    public Command getCommand(CANDriveSubsystem driveSubsystem, double duration) {
+        return new DriveCommand(() -> this.speed, () -> this.rotation, driveSubsystem).withTimeout(duration);
     }
 }

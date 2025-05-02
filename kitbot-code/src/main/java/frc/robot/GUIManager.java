@@ -45,6 +45,7 @@ class GUIManager {
         String commandJSON = table.getEntry("command").getString("");
         Type commandListType = new TypeToken<List<GPTCommand>>() {
         }.getType();
+        
 
         if (!commandJSON.isEmpty()) {
             try {
@@ -53,23 +54,27 @@ class GUIManager {
                 SequentialCommandGroup group = new SequentialCommandGroup();
 
                 for (GPTCommand command : commands) {
-                    System.out.println("Adding command: " + command.command_type);
+                    
                     Command cmd = command.getCommand(driveSubsystem, rollerSubsystem);
+          
 
-                    Command wrapped = new InstantCommand(() ->
-                        table.getEntry("active_command").setString(command.id) // Set active command ID
-                    ).andThen(cmd);
+                    Command wrapped = new InstantCommand(() -> table.getEntry("active_command").setString(command.id) // Set
+                                                                                                                      // active
+                                                                                                                      // command
+                                                                                                                      // ID
+                    ).andThen(cmd).andThen(
+                            new InstantCommand(() -> table.getEntry("active_command").setString("")) // Clear active command
+                                                                                                       // ID
+                    );
 
                     if (command.pause_duration > 0) {
-                        group.addCommands(wrapped.andThen(
-                            new InstantCommand(() ->
-                                table.getEntry("active_command").setString("") // Clear active command ID during pause
-                            )
-                        ).andThen(new WaitCommand((float) command.pause_duration)));
+                        group.addCommands(wrapped.andThen(new WaitCommand((float) command.pause_duration)));
                     } else {
                         group.addCommands(wrapped);
                     }
                 }
+                
+              
 
                 CommandScheduler.getInstance().schedule(group);
 

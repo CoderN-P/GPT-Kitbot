@@ -14,9 +14,9 @@ public class GPTCommand {
     public Command getCommand(CANDriveSubsystem driveSubsystem, CANRollerSubsystem rollerSubsystem) {
         switch (command_type) {
             case DRIVE:
-                return ((GPTDriveCommand) command).getCommand(driveSubsystem);
+                return ((GPTDriveCommand) command).getCommand(driveSubsystem, duration);
             case ROLLER:
-                return ((GPTRollerCommand) command).getCommand(rollerSubsystem);
+                return ((GPTRollerCommand) command).getCommand(rollerSubsystem, duration);
             default:
                 throw new IllegalArgumentException("Unknown command type: " + command_type);
         }

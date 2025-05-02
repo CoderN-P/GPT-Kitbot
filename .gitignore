@@ -185,3 +185,20 @@ ctre_sim/
 # clangd
 /.cache
 compile_commands.json
+
+
+# python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+# C extensions
+*.so
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+eggs/
+.eggs-info/
+.pyc
+dist/

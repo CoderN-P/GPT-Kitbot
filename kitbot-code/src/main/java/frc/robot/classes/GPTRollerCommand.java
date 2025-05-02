@@ -13,7 +13,7 @@ public class GPTRollerCommand {
         this.backward = backward;
     }
 
-    public Command getCommand(CANRollerSubsystem rollerSubsystem) {
-        return new RollerCommand(() -> forward, () -> backward, rollerSubsystem);
+    public Command getCommand(CANRollerSubsystem rollerSubsystem, double duration) {
+        return new RollerCommand(() -> forward, () -> backward, rollerSubsystem).withTimeout(duration);
     }
 }

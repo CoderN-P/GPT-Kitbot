@@ -7,17 +7,20 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.CANDriveSubsystem;
+import frc.robot.subsystems.CANRollerSubsystem;
 
 // Command to run the robot at 1/2 power for 1 second in autonomous
 public class AutoCommand extends Command {
   CANDriveSubsystem driveSubsystem;
+  CANRollerSubsystem rollerSubsystem;
   private Timer timer;
   private double seconds = 1.0;
 
   // Constructor. Runs only once when the command is first created.
-  public AutoCommand(CANDriveSubsystem driveSubsystem) {
+  public AutoCommand(CANDriveSubsystem driveSubsystem, CANRollerSubsystem rollerSubsystem) {
     // Save parameter for use later and initialize timer object.
     this.driveSubsystem = driveSubsystem;
+    this.rollerSubsystem = rollerSubsystem;
     timer = new Timer();
 
     // Declare subsystems required by this command. This should include any
@@ -38,7 +41,11 @@ public class AutoCommand extends Command {
   @Override
   public void execute() {
     // drive at 1/2 speed
+    
+ 
     driveSubsystem.driveArcade(0.5, 0.0);
+    // shoot preloaded game piece
+    rollerSubsystem.runRoller(0, 1);
   }
 
   // Runs each time the command ends via isFinished or being interrupted.

@@ -18,10 +18,22 @@ public class CommandDeserializer implements JsonDeserializer<GPTCommand> {
             throws JsonParseException {
 
         JsonObject obj = json.getAsJsonObject();
-        CommandEnum type = CommandEnum.valueOf(obj.get("command_type").getAsString().toUpperCase());
+        CommandEnum type = null;
+        for (CommandEnum enumValue : CommandEnum.values()) {
+            if (enumValue.name().equalsIgnoreCase(obj.get("command_type").getAsString()) ||
+                    enumValue.toString().equalsIgnoreCase(obj.get("command_type").getAsString())) {
+                type = enumValue;
+                break;
+            }
+        }
+
+        if (type == null) {
+            throw new JsonParseException("Unknown command_type: " + obj.get("command_type").getAsString());
+        }
 
         GPTCommand cmd = new GPTCommand();
         cmd.command_type = type;
+        cmd.id = obj.get("id").getAsString();
         cmd.duration = obj.get("duration").getAsDouble();
         cmd.pause_duration = obj.get("pause_duration").getAsDouble();
 
@@ -29,10 +41,10 @@ public class CommandDeserializer implements JsonDeserializer<GPTCommand> {
 
         switch (type) {
             case DRIVE:
-                cmd.command = context.deserialize(commandData, DriveCommand.class);
+                cmd.command = context.deserialize(commandData, GPTDriveCommand.class);
                 break;
             case ROLLER:
-                cmd.command = context.deserialize(commandData, RollerCommand.class);
+                cmd.command = context.deserialize(commandData, GPTRollerCommand.class);
                 break;
             default:
                 throw new JsonParseException("Unknown command_type: " + type);

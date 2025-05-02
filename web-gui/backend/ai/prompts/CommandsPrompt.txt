@@ -52,7 +52,7 @@ Pause duration is optional and determines how long the robot should pause before
 Some rules to follow:
 - Driving `speed` must be between -1.0 (full reverse) and +1.0 (full forward)
 - Roller `forward` is also between 0 and +1.0 and `backward` is between 0 and 1.0. If both are 1 or both are 0, the roller does not move.
-- Roller forward is for intake and backward is for shooter.
+- Roller forward is for shooter and backward is for intake.
 - Use time-based driving when encoder data is unavailable
 - Use distance-based driving when encoders are available and accuracy is needed
 - Avoid using excessive speed (try to stay below 0.7 unless needed)

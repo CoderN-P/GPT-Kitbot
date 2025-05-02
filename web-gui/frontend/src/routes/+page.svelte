@@ -5,8 +5,9 @@
   import { CommandEnum } from "$lib/types";
   import CommandView from "$lib/components/CommandView.svelte";
   import MessageField from "$lib/components/MessageField.svelte";
-  import { fade, fly, slide } from 'svelte/transition';
+  import { fade, fly, slide } from "svelte/transition";
   import { io } from "$lib/api/socketClient";
+  import { toast } from "svelte-sonner";
 
   // State variables
   let query = "";
@@ -17,25 +18,24 @@
   let activeCommandId: string | null = null;
   let commandContainerElement: HTMLElement;
   let showHistory = false;
-  
 
   // Listen for active_command updates from the backend
   onMount(() => {
-    // fake data for testing
-    commands = [
-        { id: "1", command_type: CommandEnum.DRIVE, command: {speed: 0.5, rotation: 0,}, duration: 3, pause_duration: 0 },
-        { id: "2", command_type: CommandEnum.ROLLER, command: {backward: 0, forward: 0.8}, duration: 2, pause_duration: 0 },
-        { id: "3", command_type: CommandEnum.DRIVE, command: {speed: 0.7, rotation: -0.5}, duration: 4, pause_duration: 0 },
-        { id: "4", command_type: CommandEnum.ROLLER, command: {backward: 1, forward: 0}, duration: 1, pause_duration: 0 },
-    ];
-    
-    // Simulate active command
-    simulateActiveCommands();
-    
-    io.on('active_command', (data) => {
+    io.on("active_command", (data) => {
+      if (data.id === "" && activeCommandId){
+        // remove the command from commands
+        commands = commands.filter((command) => command.id !== activeCommandId);
+      }
       activeCommandId = data.id;
       tick(); // Ensure UI updates
     });
+    io.on("status", (data) => {
+      if (data.status === "Commands executed successfully"){
+        toast.success(data.status)
+      } else {
+        toast.error(data.status)
+      }
+    })
   });
 
   // Form handling
@@ -56,14 +56,12 @@
 
       // Clear input after successful submission
       query = "";
-      
+
       // Scroll to the top of command container when new commands arrive
       await tick();
       if (commandContainerElement) {
         commandContainerElement.scrollTop = 0;
       }
-        // Simulate active commands
-        simulateActiveCommands();
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to generate commands";
@@ -72,23 +70,6 @@
       isLoading = false;
     }
   };
-
-  function simulateActiveCommands() {
-    let idx = 0;
-    setInterval(() => {
-      if (activeCommandId) {
-        commands = commands.filter(
-                (command) => command.id !== activeCommandId
-        )
-        idx = 0; // Reset index if active command is removed
-      }
-      
-      const current = commands[idx % commands.length];
-      console.log("Simulating active command:", current);
-      activeCommandId = current.id;
-      idx++;
-    }, 4000); // Change active command every 4 seconds
-  }
 
   // Format time for display
   const formatTime = (date: Date) => {
@@ -122,49 +103,65 @@
 
   {#if !hasCommands}
     <!-- Centered input when no commands are present -->
-    <div class="flex-grow flex flex-col items-center justify-center w-full"
-         in:fade={{ duration: 600, delay: 400 }}>
-      
-        <form on:submit|preventDefault={handleSubmit} class="space-y-4 w-full">
-          <MessageField
-            bind:query
-            loading={isLoading}
-          />
-        </form>
+    <div
+      class="flex-grow flex flex-col items-center justify-center w-full"
+      in:fade={{ duration: 600, delay: 400 }}
+    >
+      <form on:submit|preventDefault={handleSubmit} class="space-y-4 w-full">
+        <MessageField bind:query loading={isLoading} />
+      </form>
 
-        {#if error}
-          <div class="mt-4 p-3 bg-red-50 text-red-700 rounded-md" in:fly={{ y: 10, duration: 300 }}>
-            <p>{error}</p>
-          </div>
-        {/if}
-      </div>
-    
+      {#if error}
+        <div
+          class="mt-4 p-3 bg-red-50 text-red-700 rounded-md"
+          in:fly={{ y: 10, duration: 300 }}
+        >
+          <p>{error}</p>
+        </div>
+      {/if}
+    </div>
   {:else}
     <!-- Command timeline area when commands are present -->
     <div class="flex-grow flex flex-col overflow-hidden" in:fade>
       <!-- Current Commands Section -->
       <div class="mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold" in:slide={{ duration: 300, delay: 100 }}>Current Commands</h2>
+          <h2
+            class="text-xl font-semibold"
+            in:slide={{ duration: 300, delay: 100 }}
+          >
+            Current Commands
+          </h2>
           {#if history.length > 0}
-            <button 
+            <button
               class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
               on:click={toggleHistory}
             >
-              <span>{showHistory ? 'Hide' : 'Show'} History</span>
-              <span class="text-xs bg-gray-100 rounded-full px-2 py-0.5">{history.length}</span>
+              <span>{showHistory ? "Hide" : "Show"} History</span>
+              <span class="text-xs bg-gray-100 rounded-full px-2 py-0.5"
+                >{history.length}</span
+              >
             </button>
           {/if}
         </div>
-        
-        <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4" bind:this={commandContainerElement}>
+
+        <div
+          class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4"
+          bind:this={commandContainerElement}
+        >
           {#if commands.length > 0}
             {#each commands as command, i (i)}
-              <CommandView {command} index={i} active={command.id === activeCommandId} />
+              <CommandView
+                {command}
+                index={i}
+                active={command.id === activeCommandId}
+              />
             {/each}
           {:else}
             <div class="text-center py-8 text-gray-500" in:fade>
-              <p>No current commands. Enter a query below to generate commands.</p>
+              <p>
+                No current commands. Enter a query below to generate commands.
+              </p>
             </div>
           {/if}
         </div>
@@ -180,15 +177,17 @@
                 <div class="bg-gray-50 rounded-lg p-3 mb-3">
                   <div class="flex justify-between items-start">
                     <p class="font-medium text-gray-800">"{entry.query}"</p>
-                    <span class="text-sm text-gray-500">{formatTime(entry.timestamp)}</span>
+                    <span class="text-sm text-gray-500"
+                      >{formatTime(entry.timestamp)}</span
+                    >
                   </div>
                 </div>
                 <div class="space-y-3 pl-3 border-l border-gray-200">
                   {#each entry.commands as command, cmdIndex}
-                    <CommandView 
-                      command={command} 
-                      active={command.id === activeCommandId} 
-                      index={cmdIndex + (historyIndex * entry.commands.length)} 
+                    <CommandView
+                      {command}
+                      active={command.id === activeCommandId}
+                      index={cmdIndex + historyIndex * entry.commands.length}
                     />
                   {/each}
                 </div>
@@ -204,18 +203,15 @@
       class="sticky bottom-0 bg-white/80 backdrop-blur-md pt-4 pb-6 z-10 border-t border-gray-100"
       in:fly={{ y: 20, duration: 400 }}
     >
-      <form
-        on:submit|preventDefault={handleSubmit}
-        class="w-full"
-      >
-        <MessageField
-          bind:query
-          loading={isLoading}
-        />
+      <form on:submit|preventDefault={handleSubmit} class="w-full">
+        <MessageField bind:query loading={isLoading} />
       </form>
 
       {#if error}
-        <div class="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm" in:fly={{ y: 10, duration: 300 }}>
+        <div
+          class="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm"
+          in:fly={{ y: 10, duration: 300 }}
+        >
           <p>{error}</p>
         </div>
       {/if}
