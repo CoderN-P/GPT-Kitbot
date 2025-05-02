@@ -30,6 +30,8 @@ table = nt.getTable("flask_gui")
 table.getEntry("command").setString("")
 table.getEntry("active_command").setString("")
 table.getEntry("status").setString("")
+# Initialize emergency stop entry
+table.getEntry("emergency_stop").setBoolean(False)
 
 loop = asyncio.get_event_loop()
 
@@ -75,6 +77,21 @@ async def generate_commands(data: GenerateCommandsRequest):
     
     return commands
 
+@app.route("/emergency_stop", methods=["POST"])
+async def emergency_stop():
+    """
+    Trigger an emergency stop of all robot operations.
+    
+    Returns:
+        dict: A status message indicating the emergency stop was triggered.
+    """
+    try:
+        table.getEntry("emergency_stop").setBoolean(True)
+        await sio.emit("status", {"status": "Emergency stop activated"})
+        return {"status": "Emergency stop activated"}
+    except Exception as e:
+        print(f"Error triggering emergency stop: {e}")
+        return {"status": f"Error: {str(e)}"}, 500
 
 import uvicorn
 

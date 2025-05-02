@@ -30,6 +30,7 @@ class GUIManager {
     private CANDriveSubsystem driveSubsystem;
     private CANRollerSubsystem rollerSubsystem;
     private Gson gson;
+    private NetworkTable table;
 
     public GUIManager(CANDriveSubsystem driveSubsystem, CANRollerSubsystem rollerSubsystem) {
         this.driveSubsystem = driveSubsystem;
@@ -37,12 +38,33 @@ class GUIManager {
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(GPTCommand.class, new CommandDeserializer())
                 .create();
+        this.table = NetworkTableInstance.getDefault().getTable("flask_gui");
+        
+        // Initialize emergency stop entry
+        table.getEntry("emergency_stop").setBoolean(false);
     }
 
     public void runGUICommands() {
-        NetworkTable table = NetworkTableInstance.getDefault().getTable("flask_gui");
+        // Check for emergency stop signal
+        boolean emergencyStop = table.getEntry("emergency_stop").getBoolean(false);
+        
+        if (emergencyStop) {
+            // Cancel all running commands
+            CommandScheduler.getInstance().cancelAll();
+            
+            // Stop all motors
+            driveSubsystem.driveArcade(0, 0);
+            rollerSubsystem.runRoller(0, 0);
+            
+            // Reset emergency stop flag
+            table.getEntry("emergency_stop").setBoolean(false);
+            table.getEntry("status").setString("Emergency stop activated");
+            table.getEntry("active_command").setString("");
+            return;
+        }
 
         String commandJSON = table.getEntry("command").getString("");
+        
         Type commandListType = new TypeToken<List<GPTCommand>>() {
         }.getType();
         

@@ -8,6 +8,7 @@
   import { fade, fly, slide } from "svelte/transition";
   import { io } from "$lib/api/socketClient";
   import { toast } from "svelte-sonner";
+  import { AlertTriangle } from "lucide-svelte";
 
   // State variables
   let query = "";
@@ -18,6 +19,7 @@
   let activeCommandId: string | null = null;
   let commandContainerElement: HTMLElement;
   let showHistory = false;
+  let isEmergencyStopTriggering = false;
 
   // Listen for active_command updates from the backend
   onMount(() => {
@@ -32,6 +34,12 @@
     io.on("status", (data) => {
       if (data.status === "Commands executed successfully"){
         toast.success(data.status)
+      } else if (data.status === "Emergency stop activated") {
+        toast.error(data.status, {
+          duration: 4000,
+          icon: AlertTriangle,
+        });
+        isEmergencyStopTriggering = false;
       } else {
         toast.error(data.status)
       }
@@ -71,6 +79,30 @@
     }
   };
 
+  // Handle emergency stop
+  const triggerEmergencyStop = async () => {
+    try {
+      isEmergencyStopTriggering = true;
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/emergency_stop`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.status || 'Failed to trigger emergency stop');
+      }
+      
+      // Clear active commands from the UI
+      commands = [];
+      activeCommandId = null;
+      
+    } catch (err) {
+      console.error('Emergency stop error:', err);
+      toast.error(`Emergency stop failed: ${err instanceof Error ? err.message : String(err)}`);
+      isEmergencyStopTriggering = false;
+    }
+  };
+
   // Format time for display
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -86,9 +118,26 @@
 
   // Computed property to determine if we have any content
   $: hasCommands = commands.length > 0 || history.length > 0;
+  $: hasActiveCommands = activeCommandId !== null;
 </script>
 
 <div class="container mx-auto p-4 min-h-screen max-w-3xl flex flex-col">
+  <!-- Emergency Stop Button (fixed position, always visible) -->
+  <div class="fixed bottom-8 right-8 z-50" in:fade={{ duration: 300 }}>
+    <button
+      class="rounded-full w-16 h-16 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transform hover:scale-105 transition-all flex items-center justify-center border-4 border-red-300 focus:outline-none focus:ring-4 focus:ring-red-300"
+      on:click={triggerEmergencyStop}
+      disabled={isEmergencyStopTriggering}
+      title="Emergency Stop - Click to immediately stop all robot actions"
+    >
+      {#if isEmergencyStopTriggering}
+        <div class="animate-spin h-5 w-5 border-t-2 border-white"></div>
+      {:else}
+        <span class="text-sm">STOP</span>
+      {/if}
+    </button>
+  </div>
+
   <header class="mb-8" in:fade={{ duration: 800, delay: 300 }}>
     <h1 class="text-5xl font-bold mb-2">
       FRC <span
