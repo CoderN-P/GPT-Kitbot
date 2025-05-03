@@ -39,7 +39,7 @@ class GUIManager {
                 .registerTypeAdapter(GPTCommand.class, new CommandDeserializer())
                 .create();
         this.table = NetworkTableInstance.getDefault().getTable("flask_gui");
-        
+
         // Initialize emergency stop entry
         table.getEntry("emergency_stop").setBoolean(false);
     }
@@ -47,15 +47,15 @@ class GUIManager {
     public void runGUICommands() {
         // Check for emergency stop signal
         boolean emergencyStop = table.getEntry("emergency_stop").getBoolean(false);
-        
+
         if (emergencyStop) {
             // Cancel all running commands
             CommandScheduler.getInstance().cancelAll();
-            
+
             // Stop all motors
             driveSubsystem.driveArcade(0, 0);
             rollerSubsystem.runRoller(0, 0);
-            
+
             // Reset emergency stop flag
             table.getEntry("emergency_stop").setBoolean(false);
             table.getEntry("status").setString("Emergency stop activated");
@@ -64,10 +64,9 @@ class GUIManager {
         }
 
         String commandJSON = table.getEntry("command").getString("");
-        
+
         Type commandListType = new TypeToken<List<GPTCommand>>() {
         }.getType();
-        
 
         if (!commandJSON.isEmpty()) {
             try {
@@ -76,17 +75,17 @@ class GUIManager {
                 SequentialCommandGroup group = new SequentialCommandGroup();
 
                 for (GPTCommand command : commands) {
-                    
+
                     Command cmd = command.getCommand(driveSubsystem, rollerSubsystem);
-          
 
                     Command wrapped = new InstantCommand(() -> table.getEntry("active_command").setString(command.id) // Set
                                                                                                                       // active
                                                                                                                       // command
                                                                                                                       // ID
                     ).andThen(cmd).andThen(
-                            new InstantCommand(() -> table.getEntry("active_command").setString("")) // Clear active command
-                                                                                                       // ID
+                            new InstantCommand(() -> table.getEntry("active_command").setString("")) // Clear active
+                                                                                                     // command
+                                                                                                     // ID
                     );
 
                     if (command.pause_duration > 0) {
@@ -95,8 +94,6 @@ class GUIManager {
                         group.addCommands(wrapped);
                     }
                 }
-                
-              
 
                 CommandScheduler.getInstance().schedule(group);
 

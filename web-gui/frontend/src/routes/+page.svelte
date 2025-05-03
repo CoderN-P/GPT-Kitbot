@@ -5,10 +5,11 @@
   import { CommandEnum } from "$lib/types";
   import CommandView from "$lib/components/CommandView.svelte";
   import MessageField from "$lib/components/MessageField.svelte";
+  import ManualControls from "$lib/components/ManualControls.svelte";
   import { fade, fly, slide } from "svelte/transition";
   import { io } from "$lib/api/socketClient";
   import { toast } from "svelte-sonner";
-  import { AlertTriangle } from "lucide-svelte";
+  import { AlertTriangle, Gamepad2 } from "lucide-svelte";
 
   // State variables
   let query = "";
@@ -20,11 +21,12 @@
   let commandContainerElement: HTMLElement;
   let showHistory = false;
   let isEmergencyStopTriggering = false;
+  let showManualControls = false;
 
   // Listen for active_command updates from the backend
   onMount(() => {
     io.on("active_command", (data) => {
-      if (data.id === "" && activeCommandId){
+      if (data.id === "" && activeCommandId) {
         // remove the command from commands
         commands = commands.filter((command) => command.id !== activeCommandId);
       }
@@ -32,18 +34,18 @@
       tick(); // Ensure UI updates
     });
     io.on("status", (data) => {
-      if (data.status === "Commands executed successfully"){
-        toast.success(data.status)
+      if (data.status === "Commands executed successfully") {
+        toast.success(data.status);
       } else if (data.status === "Emergency stop activated") {
         toast.error(data.status, {
           duration: 4000,
-          icon: AlertTriangle,
+          icon: AlertTriangle
         });
         isEmergencyStopTriggering = false;
       } else {
-        toast.error(data.status)
+        toast.success(data.status);
       }
-    })
+    });
   });
 
   // Form handling
@@ -83,22 +85,26 @@
   const triggerEmergencyStop = async () => {
     try {
       isEmergencyStopTriggering = true;
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/emergency_stop`, {
-        method: 'POST',
-      });
-      
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/emergency_stop`,
+        {
+          method: "POST",
+        }
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.status || 'Failed to trigger emergency stop');
+        throw new Error(errorData.status || "Failed to trigger emergency stop");
       }
-      
+
       // Clear active commands from the UI
       commands = [];
       activeCommandId = null;
-      
     } catch (err) {
-      console.error('Emergency stop error:', err);
-      toast.error(`Emergency stop failed: ${err instanceof Error ? err.message : String(err)}`);
+      console.error("Emergency stop error:", err);
+      toast.error(
+        `Emergency stop failed: ${err instanceof Error ? err.message : String(err)}`
+      );
       isEmergencyStopTriggering = false;
     }
   };
@@ -114,6 +120,10 @@
 
   const toggleHistory = () => {
     showHistory = !showHistory;
+  };
+
+  const toggleManualControls = () => {
+    showManualControls = !showManualControls;
   };
 
   // Computed property to determine if we have any content
@@ -138,6 +148,24 @@
     </button>
   </div>
 
+  <!-- Manual Controls Toggle Button -->
+  <div class="fixed bottom-8 left-8 z-50" in:fade={{ duration: 300 }}>
+    <button
+      class="rounded-full w-16 h-16 bg-gray-800 hover:bg-gray-700 text-white shadow-lg transform hover:scale-105 transition-all flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-gray-500"
+      on:click={toggleManualControls}
+      class:ring-4={showManualControls}
+      class:ring-blue-500={showManualControls}
+      class:bg-blue-600={showManualControls}
+      class:hover:bg-blue-700={showManualControls}
+      title="Toggle Manual Controls"
+    >
+      <Gamepad2 size={24} />
+    </button>
+  </div>
+
+  <!-- Manual Controls Panel -->
+  <ManualControls visible={showManualControls} />
+
   <header class="mb-8" in:fade={{ duration: 800, delay: 300 }}>
     <h1 class="text-5xl font-bold mb-2">
       FRC <span
@@ -157,7 +185,7 @@
       in:fade={{ duration: 600, delay: 400 }}
     >
       <form on:submit|preventDefault={handleSubmit} class="space-y-4 w-full">
-        <MessageField bind:query loading={isLoading} />
+        <MessageField bind:query loading={isLoading} onSubmit={handleSubmit} />
       </form>
 
       {#if error}
@@ -253,7 +281,7 @@
       in:fly={{ y: 20, duration: 400 }}
     >
       <form on:submit|preventDefault={handleSubmit} class="w-full">
-        <MessageField bind:query loading={isLoading} />
+        <MessageField bind:query loading={isLoading} onSubmit={handleSubmit} />
       </form>
 
       {#if error}

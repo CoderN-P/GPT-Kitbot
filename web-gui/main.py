@@ -1,13 +1,13 @@
-from quart import Quart
+from quart import Quart, request
 from dotenv import load_dotenv
 load_dotenv()
 import ntcore
 from quart_cors import cors
 from pydantic.json import pydantic_encoder
-import os, json, asyncio
+import os, json, asyncio, uuid
 from quart_schema import validate_request, validate_response, QuartSchema
-from typing import List
-from backend import retrieve_commands, GenerateCommandsRequest, Command
+from typing import List, Dict, Any
+from backend import retrieve_commands, GenerateCommandsRequest, Command, DriveCommand, RollerCommand, CommandEnum
 import socketio
 import threading
 
@@ -91,6 +91,56 @@ async def emergency_stop():
         return {"status": "Emergency stop activated"}
     except Exception as e:
         print(f"Error triggering emergency stop: {e}")
+        return {"status": f"Error: {str(e)}"}, 500
+
+@app.route("/manual_control", methods=["POST"])
+async def manual_control():
+    """
+    Send a manual control command to the robot.
+    
+    Returns:
+        dict: A status message indicating the command was sent.
+    """
+    try:
+        data = await request.get_json()
+        command_type = data.get("command_type")
+        duration = data.get("duration", 0.5)  # Default to 0.5 seconds if not specified
+        command_id = str(uuid.uuid4())
+        
+        if command_type == "drive":
+            command = {
+                "id": command_id,
+                "command_type": "drive",
+                "command": {
+                    "speed": data.get("speed", 0.0),
+                    "rotation": data.get("rotation", 0.0)
+                },
+                "duration": duration,
+                "pause_duration": 0.0
+            }
+        elif command_type == "roller":
+            command = {
+                "id": command_id,
+                "command_type": "roller",
+                "command": {
+                    "forward": data.get("forward", 0.0),
+                    "backward": data.get("backward", 0.0)
+                },
+                "duration": duration,
+                "pause_duration": 0.0
+            }
+        else:
+            return {"status": "Error: Invalid command type"}, 400
+        
+        # Convert to JSON and send to NetworkTables
+        commands_json = json.dumps([command], default=pydantic_encoder)
+        table.getEntry("command").setString(commands_json)
+        
+        await sio.emit("status", {"status": f"Manual {command_type} command sent"})
+        return {"status": "Command sent successfully", "command_id": command_id}
+    
+    except Exception as e:
+        print(f"Error sending manual command: {e}")
         return {"status": f"Error: {str(e)}"}, 500
 
 import uvicorn
